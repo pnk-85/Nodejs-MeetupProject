@@ -1,33 +1,33 @@
-
+import { MongoClient, ObjectId } from "mongodb";
 import MeetupDetail from "../../components/meetups/MeetupDetail";
 
 
 
-const MeetupDetails = () => {
+const MeetupDetails = (props) => {
     return (
         <MeetupDetail  
-        image="https://float-production-blog.storage.googleapis.com/2022/09/Selecting-a-meetup-location.png" 
-        title='my first meetup'
-        address="xyz"
-        description='meetup description'/>
+        image={props.meetupData.image}
+        title={props.meetupData.title}
+        address={props.meetupData.address}
+        description={props.meetupData.description}/>
     )
 }
 
 export async function getStaticPaths () {
 
+    const client = await MongoClient.connect('mongodb+srv://pankyghogare17:AZxQm7pXmd0aAoJ4@cluster0.zrnt87m.mongodb.net/Meetups?retryWrites=true&w=majority');
+    const db = client.db();
+
+    const meetupsCollection = db.collection('Meetups');
+
+    const meetups = await meetupsCollection.find({}, {_id:1}).toArray();
+
+    client.close();
+
     return {
         fallback : false,
-        paths: [
-            {params: {
-                meetupId: 'm1',
-            }},
-            {params: {
-                meetupId: 'm2',
-            }},
-            {params: {
-                meetupId: 'm3',
-            }}
-        ]
+        paths: meetups.map(meetup => ({params: {meetupId : meetup._id.toString()}}))
+       
     }
 }
 
@@ -35,14 +35,25 @@ export async function getStaticProps (context) {
 
     const meetupId = context.params.meetupId;
 
+    const client = await MongoClient.connect('mongodb+srv://pankyghogare17:AZxQm7pXmd0aAoJ4@cluster0.zrnt87m.mongodb.net/Meetups?retryWrites=true&w=majority');
+    const db = client.db();
+
+    const meetupsCollection = db.collection('Meetups');
+
+    const selectedMeetup = await meetupsCollection.findOne({_id: ObjectId(meetupId)});
+
+    console.log(selectedMeetup);
+
+    client.close();
+
     return {
         props: {
             meetupData : {
-                image:"https://float-production-blog.storage.googleapis.com/2022/09/Selecting-a-meetup-location.png",
-                id: meetupId,
-                title: 'my first meetup',
-                address: 'xyz',
-                description:'meetup description'
+                id: selectedMeetup._id.toString(),
+                title: selectedMeetup.title,
+                address: selectedMeetup.address,
+                image: selectedMeetup.image,
+                description: selectedMeetup.description
             }
         }
     }
